@@ -87,6 +87,43 @@
 	)
   )
 
+(defun ledger-util-open-match-buffer ()
+  (interactive)
+  (ledger-util-load)
+  (let ((mbuf (get-buffer-create ledger-util-match-buffer-name))
+		(matchable (ledger-util-get-matchable-posts))
+		(inhibit-read-only t))
+    (setq mbuf (get-buffer-create ledger-util-match-buffer-name))
+	(delete-other-windows)
+	(set-window-buffer nil mbuf)
+	(erase-buffer)
+	(dolist (item matchable)
+	  (let ((post (car item))
+			(candidates (cadr item)))
+		(insert (format "Matchable xact for account %s (%s)\n"
+						(ledger-util-post-acct post)
+						(ledger-util-post-amt post)))
+		(dolist (target candidates)
+		  (insert (format "    acct=%s, amt=%s\n"
+						  (ledger-util-post-acct target)
+						  (ledger-util-post-amt target)))
+		  )
+		)
+	  )
+	))
+
+(defvar ledger-util-match-buffer-name "*Ledger-Util-Match*"
+  "Name to use for xact matching buffer.")
+
+(defvar ledger-util-match-mode-keymap
+  "Keymap for 'ledger-util-match-mode.")
+
+(setq ledger-util-match-mode-keymap (make-sparse-keymap))
+
+(define-derived-mode ledger-util-match-mode
+  special-mode "LdgMatch"
+  "Major mode for interactively matching imported ledger transactions.")
+
 (provide 'ledger-util)
 
 ;;; ledger-util.el ends here
