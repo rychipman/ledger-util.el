@@ -7,6 +7,7 @@
 
 (require 'seq)
 (require 'ledger-util-lisp)
+(require 'magit-popup)
 
 (defvar ledger-util-active-file
   "Active ledger file. ledger-util assumes that a single file is used.")
@@ -146,6 +147,20 @@
 		("..../../...+\\$-[0-9]+\.[0-9][0-9]" . font-lock-constant-face)
 		("..../../...+\\$[0-9]+\.[0-9][0-9]" . font-lock-doc-face)
 		))
+
+(magit-define-popup ledger-util-match-help-popup
+  "Help popup for ledger-util-match."
+  :actions '("Ledger Matching Help"
+			 (?d "Delete")
+			 (?a "Add")
+			 (?m "Match")))
+
+(defvar ledger-util-match-mode-map nil
+  "Keymap for `ledger-util-match-mode'.")
+
+(setq ledger-util-match-mode-map (make-sparse-keymap))
+(define-key ledger-util-match-mode-map (kbd "?") 'ledger-util-match-help-popup)
+(define-key ledger-util-match-mode-map (kbd "h") 'ledger-util-match-help-popup)
 
 (define-derived-mode ledger-util-match-mode
   tabulated-list-mode "LdgMatch"
