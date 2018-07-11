@@ -120,9 +120,36 @@
 
 (setq ledger-util-match-mode-keymap (make-sparse-keymap))
 
+(defun ledger-util-format-xact-for-table (xact)
+  (let* ((date (ledger-util-xact-date xact))
+		 (payee (ledger-util-xact-payee xact))
+		 (posts (ledger-util-xact-postings xact))
+		 (account "Liabilities:Ryan:CHUFCU:Card")
+		 (comment "this is the description of the xact"))
+	(list nil (vector date payee account))
+	)
+  )
+
+(defun ledger-util-get-table-entries ()
+  (seq-map #'ledger-util-format-xact-for-table ledger-util-staged-xacts))
+
+(defun ledger-util-table-refresh ()
+  (setq tabulated-list-entries (ledger-util-get-table-entries)))
+
+(defun ledger-util-show-table ()
+  (interactive)
+  (pop-to-buffer ledger-util-match-buffer-name)
+  (ledger-util-match-mode))
+
 (define-derived-mode ledger-util-match-mode
-  special-mode "LdgMatch"
-  "Major mode for interactively matching imported ledger transactions.")
+  tabulated-list-mode "LdgMatch"
+  "Major mode for interactively matching imported ledger transactions."
+  (setq tabulated-list-format [("Date" 12 t)("Payee" 30)("Account" 40 t)])
+  (setq tabulated-list-padding 2)
+  (ledger-util-table-refresh)
+  (add-hook 'tabulated-list-revert-hook 'ledger-util-table-refresh nil t)
+  (tabulated-list-print)
+  (tabulated-list-init-header))
 
 (provide 'ledger-util)
 
