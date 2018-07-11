@@ -29,7 +29,7 @@
 
 (defun ledger-util-xact-date (xact)
   "Get the date string from XACT."
-  (format-time-string "%Y/%m/%d" (nth 3 xact)))
+  (format-time-string "%Y/%m/%d" (nth 2 xact)))
 
 (defun ledger-util-xact-payee (xact)
   "Get the payee from XACT."
