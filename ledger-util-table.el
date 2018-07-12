@@ -16,12 +16,6 @@
 				(lu-post-payee post)
 				(lu-post-account post))))
 
-(defun lu-table-post-to-entry-other-format (post)
-  (list (lu-post-id post)
-		(vector (lu-post-date-str post)
-				(lu-post-payee post)
-				(lu-post-account post))))
-
 (defun lu-table-entries-from-xacts (&optional mapfunc)
   (mapcar
    (or mapfunc #'lu-table-post-to-entry)
@@ -29,28 +23,35 @@
 					#'lu-xact-posts
 					(lu-get-xacts)))))
 
-(defun lu-table-display-other-format ()
-  (interactive)
-  (setq tabulated-list-entries '(lambda () (lu-table-entries-from-xacts #'lu-table-post-to-entry-other-format))
-		tabulated-list-format  (vector
-								'("Date" 12 t)
-								'("Payee" 30)
-								'("Account" 40)))
+(defun lu-table-col-from-name (name)
+  (list (capitalize (downcase name)) 15 t))
+
+(defun lu-table-get-entries-from-names (names)
+  (lu-table-entries-from-xacts
+   (lambda (post)
+	 (list (lu-post-id post)
+		   (cl-map 'vector
+				   (lambda (name)
+					 (let* ((fname (downcase name))
+							(func (intern (concat "lu-post-" fname))))
+					   (funcall func post)))
+				   names)
+		   )
+	 ))
+  )
+
+(defun lu-table-use-columns (&rest cols)
+  (unless (> (length cols) 0)
+	(error "Must provide at least one column name"))
+  (setq tabulated-list-format (cl-map 'vector #'lu-table-col-from-name cols))
+  (setq tabulated-list-entries (lambda () (lu-table-get-entries-from-names cols)))
   (tabulated-list-init-header)
   (tablist-revert))
 
 (define-derived-mode lu-table-mode
   tablist-mode "lu-table"
   "Major mode for displaying ledger data in a table."
-  (setq tabulated-list-entries 'lu-table-entries-from-xacts
-		tabulated-list-format  (vector
-								'("Date" 12 t)
-								'("Amount" 11)
-								'("Payee" 30)
-								'("Account" 40))
-		tabulated-list-padding 2)
-  (tabulated-list-init-header)
-  (tablist-minor-mode))
+  (lu-table-use-columns "date-str" "amount" "payee" "account"))
 
 (provide 'ledger-util-table)
 
