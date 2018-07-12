@@ -48,10 +48,52 @@
   (tabulated-list-init-header)
   (tablist-revert))
 
+(defun lu-table-use-filters (&rest filters)
+  (setq tablist-current-filter (lu-table-get-filter-conjunction filters))
+  (tablist-revert))
+
+(defun lu-table-get-filter-conjunction (names)
+  (let (conj)
+	(dolist (name names)
+	  (if conj
+		  (setq conj `(and ,conj ,(lu-table-get-filter name)))
+	  (setq conj (lu-table-get-filter name))))
+  conj))
+
+(defun lu-table-get-filter (name)
+  (pcase name
+	("unknown-expense" '(== "Account" "Expenses:Unknown"))
+	("homegoods" '(== "Payee" "HomeGoods"))
+	("nobudget" '(not (=~ "Account" "^Budget")))
+	("noequity" '(not (=~ "Account" "^Equity")))
+	("noexpense" '(not (=~ "Account" "^Expenses")))
+	("account" (lu-table-get-filter-conjunction '("nobudget" "noequity" "noexpense")))
+	("staged" '(=~ "File" "import.ledger"))
+	("main" '(=~ "File" "test.ledger"))
+	("cleared" '(== "Cleared-Str" "yes"))
+	("uncleared" '(== "Cleared-Str" "no"))
+	)
+  )
+
+(defun lu-table-configure ()
+  (lu-table-use-columns "date-str" "amount" "payee" "account" "file" "cleared-str")
+  (lu-table-use-filters "account" "staged"))
+
+(defun lu-table-set-view (name)
+  (pcase name
+	("import"
+	 (lu-table-use-columns "date-str" "amount" "payee" "account" "file")
+	 (lu-table-use-filters "account" "staged"))
+	("matchable"
+	 (lu-table-use-columns "date-str" "amount" "payee" "account" "file" "cleared-str")
+	 (lu-table-use-filters "account" "main" "uncleared"))
+	)
+  )
+
 (define-derived-mode lu-table-mode
   tablist-mode "lu-table"
   "Major mode for displaying ledger data in a table."
-  (lu-table-use-columns "date-str" "amount" "payee" "account"))
+  (lu-table-configure))
 
 (provide 'ledger-util-table)
 

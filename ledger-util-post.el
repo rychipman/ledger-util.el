@@ -35,6 +35,9 @@
 (defun lu-post-date-str (post)
   (format-time-string "%Y/%m/%d" (lu-post-date post)))
 
+(defun lu-post-cleared-str (post)
+  (if (lu-post-cleared post) "yes" "no"))
+
 (provide 'ledger-util-post)
 
 ;;; ledger-util-post.el ends here
