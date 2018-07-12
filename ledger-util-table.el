@@ -16,12 +16,28 @@
 				(lu-post-payee post)
 				(lu-post-account post))))
 
-(defun lu-table-entries-from-xacts ()
+(defun lu-table-post-to-entry-other-format (post)
+  (list (lu-post-id post)
+		(vector (lu-post-date-str post)
+				(lu-post-payee post)
+				(lu-post-account post))))
+
+(defun lu-table-entries-from-xacts (&optional mapfunc)
   (mapcar
-   #'lu-table-post-to-entry
+   (or mapfunc #'lu-table-post-to-entry)
    (apply #'append (mapcar
 					#'lu-xact-posts
 					(lu-get-xacts)))))
+
+(defun lu-table-display-other-format ()
+  (interactive)
+  (setq tabulated-list-entries '(lambda () (lu-table-entries-from-xacts #'lu-table-post-to-entry-other-format))
+		tabulated-list-format  (vector
+								'("Date" 12 t)
+								'("Payee" 30)
+								'("Account" 40)))
+  (tabulated-list-init-header)
+  (tablist-revert))
 
 (define-derived-mode lu-table-mode
   tablist-mode "lu-table"
