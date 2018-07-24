@@ -16,12 +16,22 @@
 				(lu-post-payee post)
 				(lu-post-account post))))
 
+(defun lu-get-post-for-entry (entry)
+  (let (id)
+	(setq id (car entry))
+	(seq-find
+	 (lambda (post) (string= id (lu-post-id post)))
+	 (lu-get-posts))))
+
+(defun lu-get-posts ()
+  (apply #'append (mapcar
+				   #'lu-xact-posts
+				   (lu-get-xacts))))
+
 (defun lu-table-entries-from-xacts (&optional mapfunc)
   (mapcar
    (or mapfunc #'lu-table-post-to-entry)
-   (apply #'append (mapcar
-					#'lu-xact-posts
-					(lu-get-xacts)))))
+   (lu-get-posts)))
 
 (defun lu-table-col-from-name (name)
   (list (capitalize (downcase name)) 15 t))
@@ -49,15 +59,15 @@
 (defun lu-table-use-filters (&rest filters)
   (setq tablist-current-filter (lu-table-get-filter-conjunction filters)))
 
-(defun lu-table-get-filter-conjunction (names)
+(defun lu-table-get-filter-conjunction (filters)
   (let (conj)
-	(dolist (name names)
+	(dolist (filter filters)
 	  (if conj
-		  (setq conj `(and ,conj ,(lu-table-get-filter name)))
-	  (setq conj (lu-table-get-filter name))))
+		  (setq conj `(and ,conj ,(lu-table-get-filter filter)))
+	  (setq conj (lu-table-get-filter filter))))
   conj))
 
-(defun lu-table-get-filter (name)
+(defun lu-table-get-named-filter (name)
   (pcase name
 	("unknown-expense" '(== "Account" "Expenses:Unknown"))
 	("homegoods" '(== "Payee" "HomeGoods"))
@@ -70,6 +80,16 @@
 	("cleared" '(== "Cleared-Str" "yes"))
 	("uncleared" '(== "Cleared-Str" "no"))
 	)
+  )
+
+(defun lu-table-get-amount-filter (amt)
+  `(== "Amount" ,amt))
+
+(defun lu-table-get-filter (filter)
+  (cond
+   ((char-or-string-p filter) (lu-table-get-named-filter filter))
+   (t (lu-table-get-amount-filter (car filter)))
+   )
   )
 
 (defun lu-table-get-amount-filter (amt)
@@ -94,7 +114,8 @@
 	 (lu-table-use-filters "account" "staged"))
 	("matchable"
 	 (lu-table-use-columns "date-str" "amount" "payee" "account" "file" "cleared-str")
-	 (lu-table-use-filters "account" "main" "uncleared"))
+	 ;(lu-table-use-filters "account" "main" "uncleared")
+	 )
 	(_ (error "Invalid view name %s" name))
 	)
   (setq lu-table-current-view name)
@@ -118,11 +139,24 @@
 (defvar lu-table-match-mode-map nil
   "Keymap for `lu-table-match-mode'.")
 
+(defun lu-table-get-marked-amount ()
+  (let (marked entry post)
+	(setq marked (tablist-get-marked-items))
+	(unless (= 1 (length marked))
+	  (error "Expected single marked posting, got %d" (length marked)))
+	(setq entry (car marked))
+	(setq post (lu-get-post-for-entry entry))
+	(lu-post-amount post)
+	))
+
 (defun lu-table-match-select ()
   (interactive)
   (tablist-put-mark)
   (pcase lu-table-current-view
-	("import" (lu-table-set-view "matchable"))
+	("import"
+	 (lu-table-use-filters "account" "main" "uncleared" (list (lu-table-get-marked-amount)))
+	 (lu-table-set-view "matchable")
+	 )
 	("matchable" (lu-table-match-marked))
 	(_ (error "In unexpected view state %s" lu-table-current-view))
 	)
