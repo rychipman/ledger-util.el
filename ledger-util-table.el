@@ -17,16 +17,7 @@
 				(lu-post-account post))))
 
 (defun lu-get-post-for-entry (entry)
-  (let (id)
-	(setq id (car entry))
-	(seq-find
-	 (lambda (post) (string= id (lu-post-id post)))
-	 (lu-get-posts))))
-
-(defun lu-get-posts ()
-  (apply #'append (mapcar
-				   #'lu-xact-posts
-				   (lu-get-xacts))))
+  (lu-get-post-by-id (car entry)))
 
 (defun lu-table-entries-from-xacts (&optional mapfunc)
   (mapcar
